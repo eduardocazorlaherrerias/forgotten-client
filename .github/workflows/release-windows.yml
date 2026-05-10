@@ -1,0 +1,112 @@
+﻿name: Release Windows Client
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.0"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 2
+  MAKEFLAGS: "-j 2"
+
+jobs:
+  build-release:
+    name: Build Windows release
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read vcpkg baseline
+        id: vcpkg-step
+        shell: pwsh
+        run: |
+          $json = Get-Content vcpkg.json -Raw | ConvertFrom-Json
+          $commit = $json.'builtin-baseline'
+          if ([string]::IsNullOrWhiteSpace($commit) -or $commit -notmatch '^[0-9a-f]{40}$') {
+            Write-Error "vcpkg.json must contain a valid 40-char builtin-baseline."
+            exit 1
+          }
+          "vcpkgGitCommitId=$commit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Cache vcpkg artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/vcpkg/installed
+            ${{ github.workspace }}/vcpkg/buildtrees
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-windows-release-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-windows-release-
+
+      - name: Install vcpkg
+        uses: lukka/run-vcpkg@a400452f634fe49e9f18d388aeb1809dcc642136
+        with:
+          vcpkgGitCommitId: ${{ steps.vcpkg-step.outputs.vcpkgGitCommitId }}
+
+      - name: Get CMake and Ninja
+        uses: lukka/get-cmake@v3.31.6
+
+      - name: Configure and build
+        uses: lukka/run-cmake@main
+        with:
+          configurePreset: windows-release
+          buildPreset: windows-release
+
+      - name: Prepare release package
+        shell: pwsh
+        run: |
+          $root = $env:GITHUB_WORKSPACE
+          $package = Join-Path $root "release-package"
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+
+          $exe = Get-ChildItem -Recurse -Path $root -Filter "otclient*.exe" | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "No otclient*.exe produced by build."
+            exit 1
+          }
+
+          Copy-Item $exe.FullName -Destination $package
+          Get-ChildItem -Path $exe.Directory.FullName -Filter "*.dll" -ErrorAction SilentlyContinue | Copy-Item -Destination $package
+
+          foreach ($dir in @("data", "modules", "mods")) {
+            if (Test-Path (Join-Path $root $dir)) {
+              Copy-Item (Join-Path $root $dir) -Destination $package -Recurse
+            }
+          }
+
+          foreach ($file in @("init.lua", "otclientrc.lua", "cacert.pem", "LICENSE", "README.md")) {
+            $path = Join-Path $root $file
+            if (Test-Path $path) {
+              Copy-Item $path -Destination $package
+            }
+          }
+
+          Compress-Archive -Path "$package\*" -DestinationPath "$root\forgotten-client-windows-x64.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: forgotten-client-windows-x64
+          path: forgotten-client-windows-x64.zip
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Forgotten Client ${{ github.event.inputs.tag || github.ref_name }}
+          files: forgotten-client-windows-x64.zip
+          generate_release_notes: true

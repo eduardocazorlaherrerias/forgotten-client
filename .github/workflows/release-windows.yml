@@ -61,6 +61,19 @@ jobs:
         uses: lukka/get-cmake@v3.31.6
 
       - name: Configure and build
+      - name: Generate gitinfo.h
+        shell: pwsh
+        run: |
+          $branch = git rev-parse --abbrev-ref HEAD
+          $version = git describe --abbrev=0 --tags 2>$null
+          if (-not $version) { $version = "dev" }
+          $commits = git rev-list --count HEAD
+          @"
+          #define GIT_BRANCH "$branch"
+          #define GIT_VERSION "$version"
+          #define GIT_COMMITS "$commits"
+          "@ | Set-Content -Path "src/gitinfo.h" -Encoding UTF8
+
         uses: lukka/run-cmake@main
         with:
           configurePreset: windows-release

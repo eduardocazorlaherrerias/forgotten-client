@@ -60,7 +60,6 @@ jobs:
       - name: Get CMake and Ninja
         uses: lukka/get-cmake@v3.31.6
 
-      - name: Configure and build
       - name: Generate gitinfo.h
         shell: pwsh
         run: |
@@ -74,6 +73,7 @@ jobs:
           #define GIT_COMMITS "$commits"
           "@ | Set-Content -Path "src/gitinfo.h" -Encoding UTF8
 
+      - name: Configure and build
         uses: lukka/run-cmake@main
         with:
           configurePreset: windows-release

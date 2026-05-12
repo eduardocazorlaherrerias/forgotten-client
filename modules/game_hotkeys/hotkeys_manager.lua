@@ -12,16 +12,42 @@ HOTKEY_ACTION_TOGGLE_CHASE = 4
 -- Dark Dungeons: trigger the actionbar multi-use cooldown when potions are used via hotkeys.
 local DD_POTION_COOLDOWN_MS = 10000
 local DD_POTION_ITEM_IDS = {
-    
-    [266] = true, [268] = true, -- client-side health/mana potion ids
-[7588] = true, [7589] = true, [7590] = true, [7591] = true,
+    [236] = true, [237] = true, [238] = true, [239] = true,
+    [266] = true, [268] = true,
+    [7588] = true, [7589] = true, [7590] = true, [7591] = true,
     [7618] = true, [7620] = true, [8472] = true, [8473] = true,
-    [8474] = true, [8704] = true, [26029] = true, [26030] = true,
-    [26031] = true
+    [8474] = true, [8704] = true, [7642] = true, [7643] = true,
+    [7644] = true, [23373] = true, [23374] = true, [23375] = true,
+    [26029] = true, [26030] = true, [26031] = true
 }
 
+local function isDarkDungeonsPotionItem(itemId)
+    itemId = tonumber(itemId)
+    if not itemId then
+        return false
+    end
+
+    if DD_POTION_ITEM_IDS[itemId] then
+        return true
+    end
+
+    local item = Item.create(itemId)
+    if not item then
+        return false
+    end
+
+    local marketData = item:getMarketData()
+    if marketData and marketData.category == MarketCategory.Potions then
+        return true
+    end
+
+    local thingType = g_things.getThingType(itemId, ThingCategoryItem)
+    local name = thingType and thingType.getName and thingType:getName()
+    return name and name:lower():find("potion", 1, true) ~= nil
+end
+
 local function triggerDarkDungeonsPotionCooldown(itemId)
-    if not DD_POTION_ITEM_IDS[tonumber(itemId)] then
+    if not isDarkDungeonsPotionItem(itemId) then
         return
     end
 

@@ -75,16 +75,35 @@ end
 local DD_POTION_COOLDOWN_MS = 10000
 local ddPotionCooldownUntil = 0
 local DD_POTION_ITEM_IDS = {
-    
-    [266] = true, [268] = true, -- client-side health/mana potion ids
-[7588] = true, [7589] = true, [7590] = true, [7591] = true,
+    [236] = true, [237] = true, [238] = true, [239] = true,
+    [266] = true, [268] = true,
+    [7588] = true, [7589] = true, [7590] = true, [7591] = true,
     [7618] = true, [7620] = true, [8472] = true, [8473] = true,
-    [8474] = true, [8704] = true, [26029] = true, [26030] = true,
-    [26031] = true
+    [8474] = true, [8704] = true, [7642] = true, [7643] = true,
+    [7644] = true, [23373] = true, [23374] = true, [23375] = true,
+    [26029] = true, [26030] = true, [26031] = true
 }
 
 local function isDarkDungeonsPotionItem(itemId)
-    return DD_POTION_ITEM_IDS[tonumber(itemId)] == true
+    itemId = tonumber(itemId)
+    if not itemId then
+        return false
+    end
+
+    if DD_POTION_ITEM_IDS[itemId] then
+        return true
+    end
+
+    local item = Item.create(itemId)
+    if item then
+        local marketData = item:getMarketData()
+        if marketData and marketData.category == MarketCategory.Potions then
+            return true
+        end
+    end
+
+    local name = getItemNameById(itemId)
+    return name and name:lower():find("potion", 1, true) ~= nil
 end
 
 local function getDarkDungeonsButtonItemId(button)
@@ -268,11 +287,6 @@ function onExecuteAction(button, isPress)
     local cooldown = isPress and 600 or 150
     button.cache.lastClick = g_clock.millis() + cooldown
     local action = button.cache.actionType
-    local ddDebugItemId = getDarkDungeonsButtonItemId(button)
-    if isDarkDungeonsPotionItem(ddDebugItemId) and modules.game_textmessage then
-        local ddActionName = getActionName(action) or tostring(action)
-        modules.game_textmessage.displayStatusMessage("DD potion actionbar: itemId=" .. tostring(ddDebugItemId) .. " useType=" .. ddActionName)
-    end
     if action == 0 then
         return true
     end

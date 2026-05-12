@@ -465,12 +465,13 @@ function onUpdateLevel(localPlayer, level, levelPercent, oldLevel, oldLevelPerce
 end
 
 local DD_POTION_ITEM_IDS = {
-    
-    [266] = true, [268] = true, -- client-side health/mana potion ids
-[7588] = true, [7589] = true, [7590] = true, [7591] = true,
+    [236] = true, [237] = true, [238] = true, [239] = true,
+    [266] = true, [268] = true,
+    [7588] = true, [7589] = true, [7590] = true, [7591] = true,
     [7618] = true, [7620] = true, [8472] = true, [8473] = true,
-    [8474] = true, [8704] = true, [26029] = true, [26030] = true,
-    [26031] = true
+    [8474] = true, [8704] = true, [7642] = true, [7643] = true,
+    [7644] = true, [23373] = true, [23374] = true, [23375] = true,
+    [26029] = true, [26030] = true, [26031] = true
 }
 
 local function isDarkDungeonsPotionButton(button)
@@ -479,7 +480,32 @@ local function isDarkDungeonsPotionButton(button)
     end
 
     local itemId = button.cache and button.cache.itemId or button.item:getItemId()
-    return DD_POTION_ITEM_IDS[tonumber(itemId)] == true
+    itemId = tonumber(itemId)
+    if not itemId then
+        return false
+    end
+
+    if DD_POTION_ITEM_IDS[itemId] then
+        return true
+    end
+
+    local item = button.item:getItem()
+    if item then
+        local marketData = item:getMarketData()
+        if marketData and marketData.category == MarketCategory.Potions then
+            return true
+        end
+    end
+
+    for _, data in pairs(hotkeyItemList) do
+        local hotkeyItem = data[1]
+        local name = data[2]
+        if hotkeyItem and hotkeyItem:getId() == itemId and name then
+            return name:lower():find("potion", 1, true) ~= nil
+        end
+    end
+
+    return false
 end
 
 function onMultiUseCooldown(multiUseCooldown)

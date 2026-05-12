@@ -75,7 +75,6 @@ end
 local DD_POTION_COOLDOWN_MS = 10000
 local ddPotionCooldownUntil = 0
 local DD_POTION_ITEM_IDS = {
-    [236] = true, [237] = true, [238] = true, [239] = true,
     [266] = true, [268] = true,
     [7588] = true, [7589] = true, [7590] = true, [7591] = true,
     [7618] = true, [7620] = true, [8472] = true, [8473] = true,
@@ -346,6 +345,9 @@ function onExecuteAction(button, isPress)
 
     if action == UseTypes["chatText"] and button.cache.sendAutomatic then
         if button.cache.isSpell then
+            if DDAiming and DDAiming.isAimedSpell and DDAiming.isAimedSpell(button.cache.param) then
+                return DDAiming.start(button.cache.param)
+            end
             spellGroupPressed[tostring(button.cache.primaryGroup)] = true
             g_game.talk(button.cache.param)
         else

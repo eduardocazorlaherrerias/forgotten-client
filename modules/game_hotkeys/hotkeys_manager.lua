@@ -12,7 +12,6 @@ HOTKEY_ACTION_TOGGLE_CHASE = 4
 -- Dark Dungeons: trigger the actionbar multi-use cooldown when potions are used via hotkeys.
 local DD_POTION_COOLDOWN_MS = 10000
 local DD_POTION_ITEM_IDS = {
-    [236] = true, [237] = true, [238] = true, [239] = true,
     [266] = true, [268] = true,
     [7588] = true, [7589] = true, [7590] = true, [7591] = true,
     [7618] = true, [7620] = true, [8472] = true, [8473] = true,
